@@ -204,8 +204,26 @@ class TRANSFORMER(nn.Module):
 # print(X.shape) 
 
 #%% Model
+def _compute_cnn_output_length(input_size):
+    """Compute the temporal length after the 7-layer CNN stack."""
+    layers = [
+        (30, 3),
+        (10, 3),
+        (10, 3),
+        (5, 3),
+        (5, 3),
+        (3, 3),
+        (2, 1),
+    ]
+    L = input_size
+    for kernel, pool in layers:
+        L = (L - kernel + 1)
+        L = L // pool
+    return L
+
+
 class TransformerWithCNNEmbeddings(nn.Module):
-    def __init__(self, num_classes=17, input_size=5120):
+    def __init__(self, num_classes=17, input_size=5120, num_features=0):
         super(TransformerWithCNNEmbeddings, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(12, 32, (30, 1), 1, 0),
@@ -242,8 +260,20 @@ class TransformerWithCNNEmbeddings(nn.Module):
             nn.ReLU(inplace=False),  # Changed inplace to False
             nn.MaxPool2d((1, 1))
         )
+        cnn_time_steps = _compute_cnn_output_length(input_size)
+        cnn_flat_dim = 128 * cnn_time_steps
+
+        self.num_features = num_features
+        self.feature_proj_dim = 5 * num_features
+        if num_features > 0:
+            self.age_sex_fc = nn.Linear(num_features, self.feature_proj_dim)
+            network_in_dim = cnn_flat_dim + self.feature_proj_dim
+        else:
+            self.age_sex_fc = None
+            network_in_dim = cnn_flat_dim
+
         self.network = nn.Sequential(
-            nn.Linear(128 * 5 + 10, 100),  
+            nn.Linear(network_in_dim, 100),  
             nn.Dropout(0.4),
             nn.Linear(100, 60),  
             nn.Dropout(0.4),
@@ -252,13 +282,14 @@ class TransformerWithCNNEmbeddings(nn.Module):
         self.dropout = nn.Dropout(0.5)
         self.batchnorm = nn.BatchNorm1d(128)
         self.transform = TRANSFORMER(input_size=input_size)
-        self.age_sex_fc = nn.Linear(2, 10)
 
-    def forward(self, x):
-        age_sex = x[1]
-        age_sex = self.age_sex_fc(age_sex)
-
-        x = x[0]
+    def forward(self, input_tensor):
+        if self.num_features:
+            x = input_tensor[0]
+            age_sex = input_tensor[1]
+            age_sex = self.age_sex_fc(age_sex)
+        else:
+            x = input_tensor
         x = x.unsqueeze(-1)
         x = self.conv1(x)
         x = self.conv2(x)
@@ -266,6 +297,7 @@ class TransformerWithCNNEmbeddings(nn.Module):
         x = self.conv4(x)
         x = self.conv5(x)
         x = self.conv6(x)
+        x = self.conv7(x)
 
         x = x.reshape(x.size(0), 128, -1)
         x = x.permute(0, 2, 1)
@@ -273,7 +305,8 @@ class TransformerWithCNNEmbeddings(nn.Module):
         x = self.transform(x)
         x = self.dropout(x)
         x = x.reshape(x.size(0), -1)
-        x = torch.cat([x, age_sex], dim=1)
+        if self.num_features:
+            x = torch.cat([x, age_sex], dim=1)
 
         x = self.network(x)
         # x = F.sigmoid(x)
@@ -310,7 +343,7 @@ if __name__ == '__main__':
     num_leads = 12
     ecg_signals = torch.randn(batch_size, num_leads, sequence_length)
     age_sex = torch.randn(batch_size, 2)
-    model = TransformerWithCNNEmbeddings(num_classes=1, input_size=5120)
+    model = TransformerWithCNNEmbeddings(num_classes=1, input_size=sequence_length)
     model.apply(initialize_weights)
 
     # Generate fake labels (for example, random integers between 0 and 16, inclusive, for classification)

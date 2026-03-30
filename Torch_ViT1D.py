@@ -156,10 +156,13 @@ class ViT(nn.Module):
                  drop_out_rate: float = 0.,
                  attn_drop_out_rate: float = 0.,
                  drop_path_rate: float = 0.,
+                 num_features: int = 0,
                  **kwargs):
         super().__init__()
         assert seq_len % patch_size == 0, 'The sequence length must be divisible by the patch size.'
         num_patches = seq_len // patch_size
+        self.num_features = num_features
+        self.feature_proj_dim = 5 * num_features
         
         # conv patch start
         self.to_patch_embedding = nn.Conv1d(num_leads, width, kernel_size=patch_size, stride=patch_size, bias=False)
@@ -225,10 +228,13 @@ class ViT_w_features(nn.Module):
                  drop_out_rate: float = 0.,
                  attn_drop_out_rate: float = 0.,
                  drop_path_rate: float = 0.,
+                 num_features: int = 0,
                  **kwargs):
         super().__init__()
         assert seq_len % patch_size == 0, 'The sequence length must be divisible by the patch size.'
         num_patches = seq_len // patch_size
+        self.num_features = num_features
+        self.feature_proj_dim = 5 * num_features
         
         # conv patch start
         self.to_patch_embedding = nn.Conv1d(num_leads, width, kernel_size=patch_size, stride=patch_size, bias=False)
@@ -253,8 +259,12 @@ class ViT_w_features(nn.Module):
             self.add_module(f'block{i}', block)
 
         self.norm = nn.LayerNorm(width)
-        self.head = nn.Identity()
-        self.dense_agsx = nn.Linear(2, 10)
+        if num_features > 0:
+            self.head = nn.Identity()
+            self.dense_agsx = nn.Linear(num_features, self.feature_proj_dim)
+        else:
+            self.head = nn.Identity()
+            self.dense_agsx = None
 
     def forward_encoding(self, series):
 
@@ -273,19 +283,23 @@ class ViT_w_features(nn.Module):
         return self.norm(x)
 
     def forward(self, input_tensor):
-        series = input_tensor[0]
-        x = self.forward_encoding(series)
-
-        age_sex = input_tensor[1]        
-        age_sex = self.dense_agsx(age_sex)
-        x = torch.cat([x, age_sex], dim=1)               
-        
+        if self.num_features > 0:
+            series = input_tensor[0]
+            age_sex = input_tensor[1]
+            x = self.forward_encoding(series)
+            age_sex = self.dense_agsx(age_sex)
+            x = torch.cat([x, age_sex], dim=1)
+        else:
+            x = self.forward_encoding(input_tensor)
         x = self.head(x)
         return x
 
     def reset_head(self, num_classes=1):
         del self.head
-        self.head = nn.Linear(self.width + 10, num_classes)        
+        if self.num_features > 0:
+            self.head = nn.Linear(self.width + self.feature_proj_dim, num_classes)
+        else:
+            self.head = nn.Linear(self.width, num_classes)
 
 def vit_tiny(num_leads, num_classes=1, seq_len=5000, patch_size=50, **kwargs):
     model_args = dict(num_leads=num_leads,
@@ -312,7 +326,7 @@ def vit_small(num_leads, num_classes=1, seq_len=5000, patch_size=50, **kwargs):
                       **kwargs)
     return ViT(**model_args)
 
-def vit_small_with_feature(num_leads, num_classes=1, seq_len=5000, patch_size=50, **kwargs):
+def vit_small_with_feature(num_leads, num_classes=1, seq_len=5000, patch_size=64, num_features=0, **kwargs):
     model_args = dict(num_leads=num_leads,
                       num_classes=num_classes,
                       seq_len=seq_len,
@@ -321,6 +335,7 @@ def vit_small_with_feature(num_leads, num_classes=1, seq_len=5000, patch_size=50
                       depth=12,
                       heads=6,
                       mlp_dim=1536,
+                      num_features=num_features,
                       **kwargs)
     return ViT_w_features(**model_args)
 
@@ -350,7 +365,7 @@ def vit_base(num_leads, num_classes=1, seq_len=5000, patch_size=50, **kwargs):
                       **kwargs)
     return ViT(**model_args)
 
-def vit_base_with_feature(num_leads, num_classes=1, seq_len=5000, patch_size=50, **kwargs):
+def vit_base_with_feature(num_leads, num_classes=1, seq_len=5000, patch_size=64, num_features=0, **kwargs):
     model_args = dict(num_leads=num_leads,
                       num_classes=num_classes,
                       seq_len=seq_len,
@@ -359,5 +374,6 @@ def vit_base_with_feature(num_leads, num_classes=1, seq_len=5000, patch_size=50,
                       depth=12,
                       heads=12,
                       mlp_dim=3072,
+                      num_features=num_features,
                       **kwargs)
     return ViT_w_features(**model_args)

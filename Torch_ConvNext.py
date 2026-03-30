@@ -138,11 +138,13 @@ class ConvNeXtV2_w_features(nn.Module):
     """ ConvNeXt V2 adapted for 1D data."""
     def __init__(self, in_chans=1, num_classes=1000, 
                  depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], 
-                 drop_path_rate=0., head_init_scale=1., return_embedding = False, num_features=2
+                 drop_path_rate=0., head_init_scale=1., return_embedding = False, num_features=0
                  ):
         super().__init__()
         self.depths = depths
         self.downsample_layers = nn.ModuleList()
+        self.num_features = num_features
+        self.feature_proj_dim = 5 * num_features
         stem = nn.Sequential(
             nn.Conv1d(in_chans, dims[0], kernel_size=4, stride=4),
             LayerNorm(dims[0], eps=1e-6, data_format="channels_first")
@@ -166,8 +168,12 @@ class ConvNeXtV2_w_features(nn.Module):
             cur += depths[i]
 
         self.norm = nn.LayerNorm(dims[-1], eps=1e-6)
-        self.dense_agsx = nn.Linear(num_features, 10)
-        self.head = nn.Linear(dims[-1]+10, num_classes)
+        if num_features > 0:
+            self.dense_agsx = nn.Linear(num_features, self.feature_proj_dim)
+            self.head = nn.Linear(dims[-1] + self.feature_proj_dim, num_classes)
+        else:
+            self.dense_agsx = None
+            self.head = nn.Linear(dims[-1], num_classes)
 
         self.apply(self._init_weights)
         self.head.weight.data.mul_(head_init_scale)
@@ -188,14 +194,18 @@ class ConvNeXtV2_w_features(nn.Module):
         return x
 
     def forward(self, input_tensor):
-        x = input_tensor[0]
-        age_sex = input_tensor[1]
+        if self.num_features:
+            x = input_tensor[0]
+            age_sex = input_tensor[1]
+        else:
+            x = input_tensor
         
         feat = self.forward_features(x)
         if self.return_embedding:
             return feat
-        age_sex = self.dense_agsx(age_sex)
-        feat = torch.cat([feat, age_sex], dim=1)             
+        if self.num_features:
+            age_sex = self.dense_agsx(age_sex)
+            feat = torch.cat([feat, age_sex], dim=1)
         x = self.head(feat)
         return x
 
@@ -210,15 +220,15 @@ def convnextv2_femto(**kwargs):
     return model
 
 def convnext_pico(**kwargs):
-    model = ConvNeXtV2(depths=[2, 2, 6, 2], dims=[64, 128, 256, 512], **kwargs)
+    model = ConvNeXtV2_w_features(depths=[2, 2, 6, 2], dims=[64, 128, 256, 512], **kwargs)
     return model
 
 def convnextv2_nano(**kwargs):
-    model = ConvNeXtV2(depths=[2, 2, 8, 2], dims=[80, 160, 320, 640], **kwargs)
+    model = ConvNeXtV2_w_features(depths=[2, 2, 8, 2], dims=[80, 160, 320, 640], **kwargs)
     return model
 
 def convnextv2_tiny(**kwargs):
-    model = ConvNeXtV2(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], **kwargs)
+    model = ConvNeXtV2_w_features(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], **kwargs)
     return model
 
 def convnextv2_base(**kwargs):
