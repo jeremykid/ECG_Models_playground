@@ -1,7 +1,6 @@
 import torch.nn as nn
 import numpy as np
 import torch    
-from bayesian_torch.layers import LinearReparameterization
 
 def _padding(downsample, kernel_size):
     """Compute required padding"""
@@ -184,6 +183,7 @@ class ResNet1d_w_features(nn.Module):
         self.conv1 = nn.Conv1d(n_filters_in, n_filters_out, kernel_size, bias=False,
                                stride=downsample, padding=padding)
         self.bn1 = nn.BatchNorm1d(n_filters_out)
+        self.num_features = num_features
 
         # Residual block layers
         self.res_blocks = []
@@ -197,16 +197,19 @@ class ResNet1d_w_features(nn.Module):
 
         # Linear layer
         n_filters_last, n_samples_last = blocks_dim[-1]
-        last_layer_dim = n_filters_last * n_samples_last + 10
+        last_layer_dim = n_filters_last * n_samples_last + 5*self.num_features
         
         self.lin = nn.Linear(last_layer_dim, n_classes)
         self.n_blk = len(blocks_dim)
-        self.dense_agsx = nn.Linear(num_features, 10)
+        self.dense_agsx = nn.Linear(self.num_features, 5*self.num_features)
         # self.dense = nn.Linear(input_size//256*320+10, num_classes)
 
     def forward(self, input_tensor):
-        x = input_tensor[0]
-        age_sex = input_tensor[1]
+        if self.num_features:
+            x = input_tensor[0]
+            age_sex = input_tensor[1]
+        else:
+            x = input_tensor
         
         """Implement ResNet1d forward propagation"""
         # First layers
@@ -221,8 +224,9 @@ class ResNet1d_w_features(nn.Module):
         # Flatten array
         x = x.view(x.size(0), -1)
 
-        age_sex = self.dense_agsx(age_sex)
-        x = torch.cat([x, age_sex], dim=1)        
+        if self.num_features:
+            age_sex = self.dense_agsx(age_sex)
+            x = torch.cat([x, age_sex], dim=1)        
         # Fully conected layer
         x = self.lin(x)
         return x    

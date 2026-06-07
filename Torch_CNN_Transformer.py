@@ -205,21 +205,25 @@ class TRANSFORMER(nn.Module):
 
 #%% Model
 def _compute_cnn_output_length(input_size):
-    """Compute the temporal length after the 7-layer CNN stack."""
+    """Compute the temporal length after the 7-layer CNN stack.
+    Each layer: Conv2d(kernel, stride=1, pad=0) -> floor((L - kernel + 1))
+                MaxPool2d(pool)                  -> floor(L / pool)
+    """
+    # (kernel_size, pool_size) for each of the 7 conv layers
     layers = [
-        (30, 3),
-        (10, 3),
-        (10, 3),
-        (5, 3),
-        (5, 3),
-        (3, 3),
-        (2, 1),
+        (30, 3),  # conv1
+        (10, 3),  # conv2
+        (10, 3),  # conv3
+        (5, 3),   # conv4
+        (5, 3),   # conv5
+        (3, 3),   # conv6
+        (2, 1),   # conv7
     ]
     L = input_size
     for kernel, pool in layers:
-        L = (L - kernel + 1)
-        L = L // pool
-    return L
+        L = (L - kernel + 1)  # conv (stride=1, pad=0)
+        L = L // pool          # max-pool
+    return L  # number of time-steps that survive → reshape to (B, 128, L)
 
 
 class TransformerWithCNNEmbeddings(nn.Module):
@@ -227,41 +231,43 @@ class TransformerWithCNNEmbeddings(nn.Module):
         super(TransformerWithCNNEmbeddings, self).__init__()
         self.conv1 = nn.Sequential(
             nn.Conv2d(12, 32, (30, 1), 1, 0),
-            nn.ReLU(inplace=False),  # Changed inplace to False
+            nn.ReLU(inplace=False),
             nn.MaxPool2d(kernel_size=(3, 1))
         )
         self.conv2 = nn.Sequential(
             nn.Conv2d(32, 64, (10, 1), 1, 0),
-            nn.ReLU(inplace=False),  # Changed inplace to False
+            nn.ReLU(inplace=False),
             nn.MaxPool2d((3, 1))
         )
         self.conv3 = nn.Sequential(
             nn.Conv2d(64, 64, (10, 1), 1, 0),
-            nn.ReLU(inplace=False),  # Changed inplace to False
+            nn.ReLU(inplace=False),
             nn.MaxPool2d((3, 1))
         )
         self.conv4 = nn.Sequential(
-            nn.Conv2d(64, 64, (5, 1), 1, 0),  
-            nn.ReLU(inplace=False),  # Changed inplace to False
+            nn.Conv2d(64, 64, (5, 1), 1, 0),
+            nn.ReLU(inplace=False),
             nn.MaxPool2d((3, 1))
         )
         self.conv5 = nn.Sequential(
-            nn.Conv2d(64, 128, (5, 1), 1, 0),  
-            nn.ReLU(inplace=False),  # Changed inplace to False
+            nn.Conv2d(64, 128, (5, 1), 1, 0),
+            nn.ReLU(inplace=False),
             nn.MaxPool2d((3, 1))
         )
         self.conv6 = nn.Sequential(
-            nn.Conv2d(128, 128, (3, 1), 1, 0),  
-            nn.ReLU(inplace=False),  # Changed inplace to False
+            nn.Conv2d(128, 128, (3, 1), 1, 0),
+            nn.ReLU(inplace=False),
             nn.MaxPool2d((3, 1))
         )
         self.conv7 = nn.Sequential(
-            nn.Conv2d(128, 128, (2, 1), 1, 0),  
-            nn.ReLU(inplace=False),  # Changed inplace to False
+            nn.Conv2d(128, 128, (2, 1), 1, 0),
+            nn.ReLU(inplace=False),
             nn.MaxPool2d((1, 1))
         )
+
+        # Dynamically compute flattened dim after CNN + Transformer
         cnn_time_steps = _compute_cnn_output_length(input_size)
-        cnn_flat_dim = 128 * cnn_time_steps
+        cnn_flat_dim = 128 * cnn_time_steps  # after reshape → (B, time_steps, 128) → flatten
 
         self.num_features = num_features
         self.feature_proj_dim = 5 * num_features
@@ -273,11 +279,11 @@ class TransformerWithCNNEmbeddings(nn.Module):
             network_in_dim = cnn_flat_dim
 
         self.network = nn.Sequential(
-            nn.Linear(network_in_dim, 100),  
+            nn.Linear(network_in_dim, 100),
             nn.Dropout(0.4),
-            nn.Linear(100, 60),  
+            nn.Linear(100, 60),
             nn.Dropout(0.4),
-            nn.Linear(60, num_classes),  
+            nn.Linear(60, num_classes),
         )
         self.dropout = nn.Dropout(0.5)
         self.batchnorm = nn.BatchNorm1d(128)
@@ -289,7 +295,11 @@ class TransformerWithCNNEmbeddings(nn.Module):
             age_sex = input_tensor[1]
             age_sex = self.age_sex_fc(age_sex)
         else:
-            x = input_tensor
+            x = input_tensor        
+
+        # age_sex = x[1]
+
+        # x = x[0]
         x = x.unsqueeze(-1)
         x = self.conv1(x)
         x = self.conv2(x)

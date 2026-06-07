@@ -156,13 +156,10 @@ class ViT(nn.Module):
                  drop_out_rate: float = 0.,
                  attn_drop_out_rate: float = 0.,
                  drop_path_rate: float = 0.,
-                 num_features: int = 0,
                  **kwargs):
         super().__init__()
         assert seq_len % patch_size == 0, 'The sequence length must be divisible by the patch size.'
         num_patches = seq_len // patch_size
-        self.num_features = num_features
-        self.feature_proj_dim = 5 * num_features
         
         # conv patch start
         self.to_patch_embedding = nn.Conv1d(num_leads, width, kernel_size=patch_size, stride=patch_size, bias=False)
@@ -260,11 +257,11 @@ class ViT_w_features(nn.Module):
 
         self.norm = nn.LayerNorm(width)
         if num_features > 0:
-            self.head = nn.Identity()
             self.dense_agsx = nn.Linear(num_features, self.feature_proj_dim)
-        else:
             self.head = nn.Identity()
+        else:
             self.dense_agsx = None
+            self.head = nn.Identity()
 
     def forward_encoding(self, series):
 
@@ -299,7 +296,7 @@ class ViT_w_features(nn.Module):
         if self.num_features > 0:
             self.head = nn.Linear(self.width + self.feature_proj_dim, num_classes)
         else:
-            self.head = nn.Linear(self.width, num_classes)
+            self.head = nn.Linear(self.width, num_classes)        
 
 def vit_tiny(num_leads, num_classes=1, seq_len=5000, patch_size=50, **kwargs):
     model_args = dict(num_leads=num_leads,

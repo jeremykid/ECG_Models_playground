@@ -2,21 +2,20 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-def generate_test_data(batch_size, input_dim, num_classes):
+def generate_test_data(batch_size, input_dim, num_classes, num_features=2):
     """
-    生成测试数据集
-    :param batch_size: 样本数量
-    :param input_dim: 输入维度 (C, L)
-    :param num_classes: 输出类别数量
-    :return: 测试输入和标签
+    :param batch_size: 
+    :param input_dim: input dim (C, L)
+    :param num_classes: 
+    :return: test inputs and labels
     """
-    # 生成随机输入数据
-    inputs = torch.randn(batch_size, *input_dim)
+    # Generate Random Input_ECG
+    ecg_inputs = torch.randn(batch_size, *input_dim)
 
-    # 生成multi-hot 编码的输出标签
+    # multi-hot labels
     labels = []
     for _ in range(batch_size):
-        num_active_classes = np.random.randint(1, num_classes + 1)  # 随机选择激活的类别数量
+        num_active_classes = np.random.randint(1, num_classes + 1)  
         active_classes = np.random.choice(num_classes, num_active_classes, replace=False)
         label = np.zeros(num_classes, dtype=np.float32)
         label[active_classes] = 1.0
@@ -24,4 +23,5 @@ def generate_test_data(batch_size, input_dim, num_classes):
 
     labels = torch.tensor(labels, dtype=torch.float32)
 
-    return inputs, labels
+    features = torch.randn(batch_size, num_features)
+    return ecg_inputs, features, labels
