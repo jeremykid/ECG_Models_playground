@@ -1,3 +1,13 @@
+"""1D ResNet for ECG signals.
+
+Adapted from the ECG-age prediction implementation:
+https://github.com/antonior92/ecg-age-prediction/blob/main/resnet.py
+
+The source repository is licensed under MIT and accompanies Lima et al.,
+"Deep neural network-estimated electrocardiographic age as a mortality
+predictor", Nature Communications 2021.
+"""
+
 import torch.nn as nn
 import numpy as np
 import torch    

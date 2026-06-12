@@ -1,4 +1,12 @@
-# https://github.com/comp-well-org/ESI/blob/main/model/convnextv2.py
+"""ConvNeXt V2 adapted for 1D ECG signals.
+
+Adapted from the ESI ConvNeXt V2 implementation:
+https://github.com/comp-well-org/ESI/blob/main/model/convnextv2.py
+
+ESI is licensed under GPL-3.0. The underlying ConvNeXt V2 architecture is from
+Woo et al., "ConvNeXt V2: Co-designing and Scaling ConvNets with Masked
+Autoencoders", CVPR 2023.
+"""
 
 import torch
 import torch.nn as nn

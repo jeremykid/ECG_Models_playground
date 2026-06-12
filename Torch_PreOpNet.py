@@ -1,5 +1,10 @@
 """
-PreOpNet models adapted from the original EffNet-style implementation.
+PreOpNet models adapted from the original EffNet-style implementation:
+https://github.com/ecg-net/PreOpNet/blob/main/models.py
+
+The source repository uses the Cedars-Sinai Academic Software License. The
+underlying model is described in Ouyang et al., "Electrocardiographic Deep
+Learning for Predicting Post-Procedural Mortality".
 
 This module intentionally provides two wrappers around a shared ECG encoder:
 

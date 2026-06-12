@@ -1,7 +1,10 @@
 """
 ECG-CPC (Contrastive Predictive Coding) Model
-Extracted and adapted from ecg-fm-benchmarking repository
-Paper: Benchmarking ECG Foundational Models (arXiv:2509.25095)
+Extracted and adapted from the ecg-fm-benchmarking repository:
+https://github.com/AI4HealthUOL/ecg-fm-benchmarking
+
+Paper: Al-Masud, Lopez Alcaraz, and Strodthoff, "Benchmarking ECG
+Foundational Models: A Reality Check Across Clinical Tasks", arXiv:2509.25095
 
 This is a simplified standalone version for integration with the main ECG multi-task framework.
 """

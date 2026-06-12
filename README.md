@@ -19,18 +19,44 @@ directly into experiments.
 - `Torch_Medformer.py` - Multi-granularity patching Transformer classifier.
 - `Hubert_ECG/` - HuBERT-ECG MIMIC-IV dataset and fine-tuning scripts.
 
-## New Architectures From DeepECG-Kit
+## Architecture Sources
 
-`Torch_Mamba1D.py` and `Torch_Medformer.py` are adapted from
-[stevenah/deepecg-kit](https://github.com/stevenah/deepecg-kit), specifically:
+- `Torch_ConvNext.py` is adapted from
+  [`comp-well-org/ESI/model/convnextv2.py`](https://github.com/comp-well-org/ESI/blob/main/model/convnextv2.py).
+- `Torch_ResNet.py` is adapted from
+  [`antonior92/ecg-age-prediction/resnet.py`](https://github.com/antonior92/ecg-age-prediction/blob/main/resnet.py).
+- `Torch_PreOpNet.py` is adapted from
+  [`ecg-net/PreOpNet/models.py`](https://github.com/ecg-net/PreOpNet/blob/main/models.py).
+- `Torch_ECG_CPC.py` is adapted from
+  [`AI4HealthUOL/ecg-fm-benchmarking`](https://github.com/AI4HealthUOL/ecg-fm-benchmarking)
+  and wraps its ECG-CPC model/checkpoint loading path.
+- `Torch_Mamba1D.py` and `Torch_Medformer.py` are adapted from
+  [stevenah/deepecg-kit](https://github.com/stevenah/deepecg-kit), specifically:
 
-- [`deepecgkit/models/mamba1d.py`](https://github.com/stevenah/deepecg-kit/blob/main/deepecgkit/models/mamba1d.py)
-- [`deepecgkit/models/medformer.py`](https://github.com/stevenah/deepecg-kit/blob/main/deepecgkit/models/medformer.py)
+  - [`deepecgkit/models/mamba1d.py`](https://github.com/stevenah/deepecg-kit/blob/main/deepecgkit/models/mamba1d.py)
+  - [`deepecgkit/models/medformer.py`](https://github.com/stevenah/deepecg-kit/blob/main/deepecgkit/models/medformer.py)
 
-DeepECG-Kit is licensed under Apache-2.0.
+See `THIRD_PARTY_NOTICES.md` for source license notes.
 
 ## References
 
+- Yu H, Guo P, Sano A. "ECG Semantic Integrator (ESI): A Foundation ECG Model
+  Pretrained with LLM-Enhanced Cardiological Text." TMLR, 2024.
+  https://openreview.net/forum?id=giEbq8Khcf
+- Woo S, Debnath S, Hu R, Chen X, Liu Z, Kweon IS, Xie S. "ConvNeXt V2:
+  Co-designing and Scaling ConvNets with Masked Autoencoders." CVPR, 2023.
+  https://arxiv.org/abs/2301.00808
+- Lima E.M., Ribeiro A.H., Paixao G.M.M. et al. "Deep neural
+  network-estimated electrocardiographic age as a mortality predictor." Nature
+  Communications, 2021.
+  https://www.nature.com/articles/s41467-021-25351-7
+- Ouyang D, Theurer J, Stein N.R. et al. "Electrocardiographic Deep Learning
+  for Predicting Post-Procedural Mortality." 2022.
+  https://arxiv.org/abs/2205.03242
+- Al-Masud M.A., Lopez Alcaraz J.M., Strodthoff N. "Benchmarking ECG
+  Foundational Models: A Reality Check Across Clinical Tasks." arXiv:2509.25095,
+  2025.
+  https://arxiv.org/pdf/2509.25095
 - Gu A, Dao T. "Mamba: Linear-Time Sequence Modeling with Selective State
   Spaces." arXiv:2312.00752, 2023.
   https://arxiv.org/abs/2312.00752
